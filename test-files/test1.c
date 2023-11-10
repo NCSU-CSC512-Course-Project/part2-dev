@@ -4,13 +4,16 @@
 int main(){
    int id;
    int n;
+   int a = 0;
+   int b = 1;
    int k = 0;
-   bool a = false;
-   bool b = true;
    scanf("%d, %d", &id, &n);
    int s = 0;
    for ( int i = 0; i < n; i++ ) {
       s += rand();
+      if ( s > 10 ) {
+         break;
+      }
    }
 
    if ( a ) {
@@ -21,7 +24,10 @@ int main(){
       printf( "c\n" );
    }
 
-   while ( k < 2 ) {
+   while ( 1 ) {
+      if ( k >= 2 ) {
+         break;
+      }
       k++;
    }
    printf( "id=%d; sum=%d\n", id, n );

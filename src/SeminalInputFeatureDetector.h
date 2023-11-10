@@ -2,6 +2,7 @@
 
 #include <string>
 #include <vector>
+#include <map>
 #include <clang-c/Index.h>
 
 class SeminalInputFeatureDetector {
@@ -33,17 +34,25 @@ class SeminalInputFeatureDetector {
 
     // Information struct for a Seminal Input Feature
     struct SeminalInputFeature {
+        CXToken token;
         std::string name;
         unsigned line;
     };
 
+    // *All obtained from KeyPointsCollector*
     // Vector of completed branch points
     std::vector<SeminalInputFeature> SeminalInputFeatures;
     // Number of SeminalInputFeatures in the vector
     unsigned count;
+    // Map of variable names (VarDecls) mapped to their declaration location
+    std::map<std::string, unsigned> varDecls;
+
 
     SeminalInputFeature temp;
 
+    // Updates the Seminal Input Features with their declare locations
+    void getDeclLocation( int index );
+    
     // Function to print the Seminal Input Features
     void printSeminalInputFeatures();
 
@@ -55,6 +64,6 @@ public:
     SeminalInputFeatureDetector( const std::string &fileName, bool debug = false );
 
     // Looks through the vector of CXCursors
-    void CursorFinder();
+    void cursorFinder();
 
 };

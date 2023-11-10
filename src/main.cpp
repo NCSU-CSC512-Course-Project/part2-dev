@@ -8,9 +8,9 @@
 int main( int argc, char *argv[] )
 {
     // Call SeminalInputFeatureDetector constructor
-    SeminalInputFeatureDetector detector( "test-files/test.c", true );
+    SeminalInputFeatureDetector detector( "test-files/test1.c", true );
 
-    detector.CursorFinder();
+    detector.cursorFinder();
 
 
 
