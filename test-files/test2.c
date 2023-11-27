@@ -7,7 +7,7 @@ int main() {
     char c;
     int len = 0;
     while ( 1 ) {
-        c=getc( fp );
+        c = getc( fp );
         if ( c == EOF ) break;
         str1[ len++ ] = c;
         if ( len >= 1000 ) break; 

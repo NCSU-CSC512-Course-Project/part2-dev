@@ -11,6 +11,7 @@
 SeminalInputFeatureDetector::SeminalInputFeatureDetector( const std::string &filename, bool debug )
     : filename(std::move(filename)), debug(debug) {
 
+    std::cout << filename << "\n";
     // Call KeyPointsCollector constructor
     KeyPointsCollector kpc( filename, false );
     // kpc.collectCursors();
@@ -41,15 +42,15 @@ CXChildVisitResult SeminalInputFeatureDetector::ifStmtBranch(CXCursor current,
     // Allocate a CXString representing the name of the current cursor
     CXString currentDisplayName = clang_getCursorDisplayName(current);
 
-    // Cursor Type
-    CXType cursor_type = clang_getCursorType(current);
-    CXString type_kind_spelling = clang_getTypeKindSpelling( cursor_type.kind );
-
     // Cursor Kind
     CXCursorKind parent_kind = clang_getCursorKind( parent );
     CXCursorKind current_kind = clang_getCursorKind( current );
     CXString parent_kind_spelling = clang_getCursorKindSpelling( parent_kind );
     CXString current_kind_spelling = clang_getCursorKindSpelling( current_kind );
+
+    // Cursor Type
+    CXType cursor_type = clang_getCursorType(current);
+    CXString type_kind_spelling = clang_getTypeSpelling( cursor_type );
 
     // Cursor Location
     CXSourceLocation location = clang_getCursorLocation( current );
@@ -66,20 +67,12 @@ CXChildVisitResult SeminalInputFeatureDetector::ifStmtBranch(CXCursor current,
         if ( instance->debug ) {
             std::cout << "  Kind: " << clang_getCString(parent_kind_spelling) << "\n"
                       << "    Kind: " << clang_getCString(current_kind_spelling) << "\n"
-                      << "      Type Kind: " << clang_getCString(type_kind_spelling) << "\n"
+                      << "      Type: " << clang_getCString(type_kind_spelling) << "\n"
                       << "      Token: " << clang_getCString(token_spelling) << "\n"
                       << "      Line " << line << "\n\n";
         }
 
-        instance->temp.name = clang_getCString(token_spelling);
-        for ( int i = 0; i < instance->SeminalInputFeatures.size(); i++ ) {
-            if ( instance->SeminalInputFeatures[ i ].name == instance->temp.name ) {
-                return CXChildVisit_Break;
-            }
-        }
-        instance->SeminalInputFeatures.push_back(instance->temp);
-        instance->getDeclLocation( instance->count++ );
-
+        instance->getDeclLocation( clang_getCString(token_spelling), instance->count++, clang_getCString(type_kind_spelling) );
         return CXChildVisit_Break;
     }
 
@@ -102,15 +95,15 @@ CXChildVisitResult SeminalInputFeatureDetector::forStmtBranch(CXCursor current,
     // Allocate a CXString representing the name of the current cursor
     CXString currentDisplayName = clang_getCursorDisplayName(current);
 
-    // Cursor Type
-    CXType cursor_type = clang_getCursorType(current);
-    CXString type_kind_spelling = clang_getTypeKindSpelling( cursor_type.kind );
-
     // Cursor Kind
     CXCursorKind parent_kind = clang_getCursorKind( parent );
     CXCursorKind current_kind = clang_getCursorKind( current );
     CXString parent_kind_spelling = clang_getCursorKindSpelling( parent_kind );
     CXString current_kind_spelling = clang_getCursorKindSpelling( current_kind );
+
+    // Cursor Type
+    CXType cursor_type = clang_getCursorType(current);
+    CXString type_kind_spelling = clang_getTypeSpelling( cursor_type );
 
     // Cursor Location
     CXSourceLocation location = clang_getCursorLocation( current );
@@ -126,7 +119,7 @@ CXChildVisitResult SeminalInputFeatureDetector::forStmtBranch(CXCursor current,
         if ( instance->debug ) {
             std::cout << "  Kind: " << clang_getCString(parent_kind_spelling) << "\n"
                       << "    Kind: " << clang_getCString(current_kind_spelling) << "\n"
-                      << "      Type Kind: " << clang_getCString(type_kind_spelling) << "\n"
+                      << "      Type: " << clang_getCString(type_kind_spelling) << "\n"
                       << "      Token: " << clang_getCString(token_spelling) << "\n"
                       << "      Line " << line << "\n\n";
         }
@@ -134,19 +127,17 @@ CXChildVisitResult SeminalInputFeatureDetector::forStmtBranch(CXCursor current,
         instance->temp.name = clang_getCString(token_spelling);
     }
 
-    if ( parent_kind == CXCursor_BinaryOperator && current_kind == CXCursor_UnexposedExpr ) {
+    if ( ( parent_kind == CXCursor_BinaryOperator || parent_kind == CXCursor_CallExpr ) && current_kind == CXCursor_UnexposedExpr ) {
         if ( instance->debug ) {
             std::cout << "  Kind: " << clang_getCString(parent_kind_spelling) << "\n"
                       << "    Kind: " << clang_getCString(current_kind_spelling) << "\n"
-                      << "      Type Kind: " << clang_getCString(type_kind_spelling) << "\n"
+                      << "      Type: " << clang_getCString(type_kind_spelling) << "\n"
                       << "      Token: " << clang_getCString(token_spelling) << "\n"
                       << "      Line " << line << "\n\n";
         }
 
         if ( instance->temp.name != clang_getCString(token_spelling) ) {
-            instance->temp.name = clang_getCString(token_spelling);
-            instance->SeminalInputFeatures.push_back( instance->temp );
-            instance->getDeclLocation( instance->count++ );
+            instance->getDeclLocation( clang_getCString(token_spelling), instance->count++, clang_getCString(type_kind_spelling) );
             return CXChildVisit_Break;
         }
     }
@@ -166,13 +157,9 @@ CXChildVisitResult SeminalInputFeatureDetector::whileStmtBranch(CXCursor current
 
     // instance of SeminalInputFeatureDetector
     SeminalInputFeatureDetector *instance = static_cast<SeminalInputFeatureDetector *>(clientData);
-    
+
     // Allocate a CXString representing the name of the current cursor
     CXString currentDisplayName = clang_getCursorDisplayName(current);
-
-    // Cursor Type
-    CXType cursor_type = clang_getCursorType(current);
-    CXString type_kind_spelling = clang_getTypeKindSpelling( cursor_type.kind );
 
     // Cursor Kind
     CXCursorKind parent_kind = clang_getCursorKind( parent );
@@ -180,76 +167,116 @@ CXChildVisitResult SeminalInputFeatureDetector::whileStmtBranch(CXCursor current
     CXString parent_kind_spelling = clang_getCursorKindSpelling( parent_kind );
     CXString current_kind_spelling = clang_getCursorKindSpelling( current_kind );
 
+    // Cursor Type
+    CXType cursor_type = clang_getCursorType(current);
+    CXString type_kind_spelling = clang_getTypeSpelling( cursor_type );
+
     // Cursor Location
     CXSourceLocation location = clang_getCursorLocation( current );
     unsigned line;
     clang_getExpansionLocation( location, &instance->cxFile, &line, nullptr, nullptr );
-    
+
     // Cursor Token
-    CXToken *cursor_token = clang_getToken( instance->translationUnit, location );
-    CXString token_spelling = clang_getTokenSpelling( instance->translationUnit, *cursor_token );
+    // CXToken *cursor_token = clang_getToken( instance->translationUnit, location );
+    // CXString token_spelling = clang_getTokenSpelling( instance->translationUnit, *cursor_token );
+
+    // Case if argument for while loop is an integer
+    // if ( parent_kind == CXCursor_WhileStmt && current_kind == CXCursor_IntegerLiteral ) {
+    //     return CXChildVisit_Break;
+    // }
 
 
-    if ( parent_kind == CXCursor_BinaryOperator && current_kind == CXCursor_UnexposedExpr ) {
+    if ( parent_kind == CXCursor_IfStmt && current_kind == CXCursor_BreakStmt ) {
+        clang_visitChildren( parent, instance->ifStmtBranch, instance );
+        return CXChildVisit_Recurse;
+    }
+
+    if ( ( parent_kind == CXCursor_BinaryOperator || parent_kind == CXCursor_CallExpr ) && current_kind == CXCursor_UnexposedExpr ) {
+        // Cursor Token
+        CXToken *cursor_token = clang_getToken( instance->translationUnit, location );
+        CXString token_spelling = clang_getTokenSpelling( instance->translationUnit, *cursor_token );
         if ( instance->debug ) {
             std::cout << "  Kind: " << clang_getCString(parent_kind_spelling) << "\n"
                       << "    Kind: " << clang_getCString(current_kind_spelling) << "\n"
-                      << "      Type Kind: " << clang_getCString(type_kind_spelling) << "\n"
+                      << "      Type: " << clang_getCString(type_kind_spelling) << "\n"
                       << "      Token: " << clang_getCString(token_spelling) << "\n"
                       << "      Line " << line << "\n\n";
         }
 
-        instance->temp.name = clang_getCString(token_spelling);
-        instance->SeminalInputFeatures.push_back(instance->temp);
-        instance->getDeclLocation( instance->count++ );
-        return CXChildVisit_Break;
+        instance->getDeclLocation( clang_getCString(token_spelling), instance->count++, clang_getCString(type_kind_spelling) );
+        clang_disposeString( token_spelling );
+        return CXChildVisit_Recurse;
     }
 
     // if ( instance->debug ) {
     //     std::cout << "  Kind: " << clang_getCString(parent_kind_spelling) << "\n"
     //               << "    Kind: " << clang_getCString(current_kind_spelling) << "\n"
-    //               << "      Type Kind: " << clang_getCString(type_kind_spelling) << "\n"
+    //               << "      Type: " << clang_getCString(type_kind_spelling) << "\n"
     //               << "      Token: " << clang_getCString(token_spelling) << "\n"
     //               << "      Line " << line << "\n\n";
     // }
-    // clang_getPointeeTy
 
     clang_disposeString( currentDisplayName );
     clang_disposeString( type_kind_spelling );
     clang_disposeString( parent_kind_spelling );
     clang_disposeString( current_kind_spelling );
-    clang_disposeString( token_spelling );
+    // clang_disposeString( token_spelling );
 
     return CXChildVisit_Recurse;
 }
 
 
 
-void SeminalInputFeatureDetector::getDeclLocation( int index ) {
+void SeminalInputFeatureDetector::getDeclLocation( std::string name, int index, std::string type ) {
     // std::cout << SeminalInputFeatures[ index ].name << "--" << varDecls.at( SeminalInputFeatures[ index ].name ) << "\n\n";
     // SeminalInputFeatures[ index ].line = varDecls.at( SeminalInputFeatures[ index ].name );
 
     // iterator it = varDecls.find( SeminalInputFeatures[ index ].name );
-    std::map<std::string, unsigned>::iterator it;
-    it = varDecls.find( SeminalInputFeatures[ index ].name );
 
-    if ( it != varDecls.end() ) {
-        SeminalInputFeatures[ index ].line = it->second;
+    bool exists = false;
+    for ( int i = 0; i < SeminalInputFeatures.size(); i++ ) {
+        if ( SeminalInputFeatures[ i ].name == name ) {
+            exists = true;
+        }
+    }
+
+    std::map<std::string, unsigned>::iterator it;
+    it = varDecls.find( name );
+    
+    if ( !exists ) {
+        if ( it != varDecls.end() ) {
+            temp.name = it->first;
+            temp.line = it->second;
+            temp.type = type;
+            SeminalInputFeatures.push_back( temp );
+        } else {
+            std::cout << "Variable was not found.\n\n";
+        }
     } else {
-        std::cout << "Var not found\n\n";
+        std::cout << "Variable is already accounted for.\n\n";
     }
 }
 
 void SeminalInputFeatureDetector::printSeminalInputFeatures() {
     for ( int i = 0; i < SeminalInputFeatures.size(); i++ ) {
-        CXString token_spelling = clang_getTokenSpelling( translationUnit, SeminalInputFeatures[ i ].token );
-
-        std::cout << "Line " << SeminalInputFeatures[ i ].line << ": "
+        // CXString token_spelling = clang_getTokenSpelling( translationUnit, SeminalInputFeatures[ i ].token );
+        if ( SeminalInputFeatures[ i ].type == "FILE *" ) {
+            std::cout << "Line " << SeminalInputFeatures[ i ].line << ": size of file "
                   << SeminalInputFeatures[ i ].name << "\n";
+        } else {
+            std::cout << "Line " << SeminalInputFeatures[ i ].line << ": "
+                  << SeminalInputFeatures[ i ].name << "\n";
+        }
     }
 }
 
 void SeminalInputFeatureDetector::cursorFinder() {
+
+    std::cout << "Variable Declarations: \n";
+    for( const std::pair<std::string, unsigned> var : varDecls ) {
+        std::cout << var.second << ": " << var.first << "\n";
+    }
+    std::cout << "\n";
 
     for ( int i = 0; i < cursorObjs.size(); i++ ) {
 
@@ -296,23 +323,4 @@ void SeminalInputFeatureDetector::cursorFinder() {
     }
 
     printSeminalInputFeatures();
-
-
-    // Testing
-    // CXCursorKind cursorKind = clang_getCursorKind( cursor );
-    //     // location = clang_getExpansionLocation( location, )
-
-    //     switch ( cursorKind ) {
-    //         case CXCursor_IfStmt:
-    //             clang_visitChildren( cursor, this->ifStmtBranch, this );
-    //             break;
-    //         case CXCursor_ForStmt:
-    //             clang_visitChildren( cursor, this->forStmtBranch, this );
-    //             break;
-    //         case CXCursor_WhileStmt:
-    //             clang_visitChildren( cursor, this->whileStmtBranch, this );
-    //             break;
-    //         default:
-    //             break;
-    //     }
 }

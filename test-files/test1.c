@@ -1,8 +1,8 @@
 #include <stdio.h>
-#include <stdbool.h>
 
 int main(){
    int id;
+#include <stdbool.h>
    int n;
    int a = 0;
    int b = 1;
@@ -24,10 +24,7 @@ int main(){
       printf( "c\n" );
    }
 
-   while ( 1 ) {
-      if ( k >= 2 ) {
-         break;
-      }
+   while ( k <= 4 && b ) {
       k++;
    }
    printf( "id=%d; sum=%d\n", id, n );

@@ -34,9 +34,9 @@ class SeminalInputFeatureDetector {
 
     // Information struct for a Seminal Input Feature
     struct SeminalInputFeature {
-        CXToken token;
         std::string name;
         unsigned line;
+        std::string type;
     };
 
     // *All obtained from KeyPointsCollector*
@@ -51,7 +51,7 @@ class SeminalInputFeatureDetector {
     SeminalInputFeature temp;
 
     // Updates the Seminal Input Features with their declare locations
-    void getDeclLocation( int index );
+    void getDeclLocation( std::string name, int index, std::string type );
     
     // Function to print the Seminal Input Features
     void printSeminalInputFeatures();
