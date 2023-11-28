@@ -8,7 +8,7 @@
 int main( int argc, char *argv[] )
 {
     // Call SeminalInputFeatureDetector constructor
-    SeminalInputFeatureDetector detector( "test-files/test1.c", true );
+    SeminalInputFeatureDetector detector( "test-files/test3.c", true );
 
     detector.cursorFinder();
 

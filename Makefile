@@ -1,5 +1,5 @@
 # Makefile for SeminalInputFeatureDetector
-CXX = clang++
+CXX = g++
 CXXFLAGS = -std=c++17
 LINKER_FLAGS = -lclang -Lllvm-project/build/lib
 
