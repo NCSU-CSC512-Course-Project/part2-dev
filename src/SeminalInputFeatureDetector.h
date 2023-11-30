@@ -1,4 +1,7 @@
-// SeminalInputFeatureDetector.h
+/** 
+ * SeminalInputFeatureDetector.h
+ * @author Carter Fultz (cmfultz)
+*/
 
 #include <string>
 #include <vector>
@@ -28,6 +31,7 @@ class SeminalInputFeatureDetector {
     // Top level translation unit of the source file.
     CXTranslationUnit translationUnit;
 
+    // Recursive searches through branches
     static CXChildVisitResult ifStmtBranch(CXCursor current, CXCursor parent, CXClientData clientData);
     static CXChildVisitResult forStmtBranch(CXCursor current, CXCursor parent, CXClientData clientData);
     static CXChildVisitResult whileStmtBranch(CXCursor current, CXCursor parent, CXClientData clientData);
@@ -47,7 +51,7 @@ class SeminalInputFeatureDetector {
     // Map of variable names (VarDecls) mapped to their declaration location
     std::map<std::string, unsigned> varDecls;
 
-
+    // Temp value for storing Seminal Input Features
     SeminalInputFeature temp;
 
     // Updates the Seminal Input Features with their declare locations
@@ -56,6 +60,7 @@ class SeminalInputFeatureDetector {
     // Function to print the Seminal Input Features
     void printSeminalInputFeatures();
 
+    // debug boolean value used to print out statements
     bool debug;
 
 public:

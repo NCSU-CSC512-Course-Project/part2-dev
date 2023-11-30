@@ -1,4 +1,7 @@
-// SeminalInputFeatureDetector.cpp
+/** 
+ * SeminalInputFeatureDetector.cpp
+ * @author Carter Fultz (cmfultz)
+*/
 
 #include "SeminalInputFeatureDetector.h"
 #include "KeyPointsCollector.h"
@@ -12,7 +15,7 @@ SeminalInputFeatureDetector::SeminalInputFeatureDetector( const std::string &fil
     : filename(std::move(filename)), debug(debug) {
 
     // Call KeyPointsCollector constructor
-    KeyPointsCollector kpc( filename, false );
+    KeyPointsCollector kpc( std::string(filename), false );
     
     // Obtained from part 1, KeyPointsCollector.cpp
     cursorObjs = kpc.getCursorObjs();
@@ -34,49 +37,52 @@ CXChildVisitResult SeminalInputFeatureDetector::ifStmtBranch(CXCursor current,
     // instance of SeminalInputFeatureDetector
     SeminalInputFeatureDetector *instance = static_cast<SeminalInputFeatureDetector *>(clientData);
 
-    // Allocate a CXString representing the name of the current cursor
-    CXString currentDisplayName = clang_getCursorDisplayName(current);
+    if ( !clang_Cursor_isNull( current ) && clang_Cursor_hasAttrs( current ) ) {
 
-    // Cursor Kind
-    CXCursorKind parent_kind = clang_getCursorKind( parent );
-    CXCursorKind current_kind = clang_getCursorKind( current );
-    CXString parent_kind_spelling = clang_getCursorKindSpelling( parent_kind );
-    CXString current_kind_spelling = clang_getCursorKindSpelling( current_kind );
+        // Cursor Type
+        CXType cursor_type = clang_getCursorType( current );
+        CXString type_spelling = clang_getTypeSpelling( cursor_type );
 
-    // Cursor Type
-    CXType cursor_type = clang_getCursorType(current);
-    CXString type_kind_spelling = clang_getTypeSpelling( cursor_type );
+        // Cursor Location
+        CXSourceLocation location = clang_getCursorLocation( current );
+        unsigned line;
+        clang_getExpansionLocation( location, &instance->cxFile, &line, nullptr, nullptr );
+        
+        // Cursor Token
+        CXToken *cursor_token = clang_getToken( instance->translationUnit, location );
+        if ( cursor_token ) {
 
-    // Cursor Location
-    CXSourceLocation location = clang_getCursorLocation( current );
-    unsigned line;
-    clang_getExpansionLocation( location, &instance->cxFile, &line, nullptr, nullptr );
+            CXString token_spelling = clang_getTokenSpelling( instance->translationUnit, *cursor_token );
 
-    // Cursor Token
-    CXToken *cursor_token = clang_getToken( instance->translationUnit, location );
-    CXString token_spelling = clang_getTokenSpelling( instance->translationUnit, *cursor_token );
+            if ( parent.kind == CXCursor_IfStmt && ( current.kind == CXCursor_UnexposedExpr 
+                                                || current.kind == CXCursor_BinaryOperator ) ) {
+                if ( instance->debug ) {
+                    CXString parent_kind_spelling = clang_getCursorKindSpelling( parent.kind );
+                    CXString current_kind_spelling = clang_getCursorKindSpelling( current.kind );
 
+                    std::cout << "  Kind: " << clang_getCString(parent_kind_spelling) << "\n"
+                              << "    Kind: " << clang_getCString(current_kind_spelling) << "\n"
+                              << "      Type: " << clang_getCString(type_spelling) << "\n"
+                              << "      Token: " << clang_getCString(token_spelling) << "\n"
+                              << "      Line " << line << "\n\n";
 
-    if ( parent_kind == CXCursor_IfStmt && ( current_kind == CXCursor_UnexposedExpr 
-                                          || current_kind == CXCursor_BinaryOperator ) ) {
-        if ( instance->debug ) {
-            std::cout << "  Kind: " << clang_getCString(parent_kind_spelling) << "\n"
-                      << "    Kind: " << clang_getCString(current_kind_spelling) << "\n"
-                      << "      Type: " << clang_getCString(type_kind_spelling) << "\n"
-                      << "      Token: " << clang_getCString(token_spelling) << "\n"
-                      << "      Line " << line << "\n\n";
+                    clang_disposeString( parent_kind_spelling );
+                    clang_disposeString( current_kind_spelling );
+                }
+
+                instance->getDeclLocation( clang_getCString(token_spelling), instance->count++, clang_getCString(type_spelling) );
+                clang_disposeString( type_spelling );
+                clang_disposeString( token_spelling );
+                clang_disposeTokens( instance->translationUnit, cursor_token, 1 );
+                return CXChildVisit_Break;
+            }
+
+            clang_disposeString( token_spelling );
+            clang_disposeTokens( instance->translationUnit, cursor_token, 1 );
         }
 
-        instance->getDeclLocation( clang_getCString(token_spelling), instance->count++, clang_getCString(type_kind_spelling) );
-        return CXChildVisit_Break;
+        clang_disposeString( type_spelling );
     }
-
-    clang_disposeString( currentDisplayName );
-    clang_disposeString( type_kind_spelling );
-    clang_disposeString( parent_kind_spelling );
-    clang_disposeString( current_kind_spelling );
-    clang_disposeString( token_spelling );
-
     return CXChildVisit_Continue;
 }
 
@@ -84,65 +90,75 @@ CXChildVisitResult SeminalInputFeatureDetector::forStmtBranch(CXCursor current,
                                                       CXCursor parent,
                                                       CXClientData clientData) {
 
+    std::cout << "1\n";
     // instance of SeminalInputFeatureDetector
     SeminalInputFeatureDetector *instance = static_cast<SeminalInputFeatureDetector *>(clientData);
 
-    // Allocate a CXString representing the name of the current cursor
-    CXString currentDisplayName = clang_getCursorDisplayName(current);
+    if ( !clang_Cursor_isNull( current ) && clang_Cursor_hasAttrs( current ) ) {
+        std::cout << "2\n";
+        // Cursor Type
+        CXType cursor_type = clang_getCursorType( current ); // invalid pointer issue??
+        CXString type_spelling = clang_getTypeSpelling( cursor_type );
 
-    // Cursor Kind
-    CXCursorKind parent_kind = clang_getCursorKind( parent );
-    CXCursorKind current_kind = clang_getCursorKind( current );
-    CXString parent_kind_spelling = clang_getCursorKindSpelling( parent_kind );
-    CXString current_kind_spelling = clang_getCursorKindSpelling( current_kind );
+        // Cursor Location
+        CXSourceLocation location = clang_getCursorLocation( current );
+        unsigned line;
+        clang_getExpansionLocation( location, &instance->cxFile, &line, nullptr, nullptr );
 
-    // Cursor Type
-    CXType cursor_type = clang_getCursorType(current);
-    CXString type_kind_spelling = clang_getTypeSpelling( cursor_type );
+        // Cursor Token
+        CXToken *cursor_token = clang_getToken( instance->translationUnit, location );
+        if ( cursor_token ) {
 
-    // Cursor Location
-    CXSourceLocation location = clang_getCursorLocation( current );
-    unsigned line;
-    clang_getExpansionLocation( location, &instance->cxFile, &line, nullptr, nullptr );
+            CXString token_spelling = clang_getTokenSpelling( instance->translationUnit, *cursor_token );
 
-    // Cursor Token
-    CXToken *cursor_token = clang_getToken( instance->translationUnit, location );
-    CXString token_spelling = clang_getTokenSpelling( instance->translationUnit, *cursor_token );
+            if ( parent.kind == CXCursor_DeclStmt && current.kind == CXCursor_VarDecl ) {
+                if ( instance->debug ) {
+                    CXString parent_kind_spelling = clang_getCursorKindSpelling( parent.kind );
+                    CXString current_kind_spelling = clang_getCursorKindSpelling( current.kind );
 
+                    std::cout << "  Kind: " << clang_getCString(parent_kind_spelling) << "\n"
+                              << "    Kind: " << clang_getCString(current_kind_spelling) << "\n"
+                              << "      Type: " << clang_getCString(type_spelling) << "\n"
+                              << "      Token: " << clang_getCString(token_spelling) << "\n"
+                              << "      Line " << line << "\n\n";
 
-    if ( parent_kind == CXCursor_DeclStmt && current_kind == CXCursor_VarDecl ) {
-        if ( instance->debug ) {
-            std::cout << "  Kind: " << clang_getCString(parent_kind_spelling) << "\n"
-                      << "    Kind: " << clang_getCString(current_kind_spelling) << "\n"
-                      << "      Type: " << clang_getCString(type_kind_spelling) << "\n"
-                      << "      Token: " << clang_getCString(token_spelling) << "\n"
-                      << "      Line " << line << "\n\n";
+                    clang_disposeString( parent_kind_spelling );
+                    clang_disposeString( current_kind_spelling );
+                }
+
+                instance->temp.name = clang_getCString(token_spelling);
+            }
+            
+            if ( ( parent.kind == CXCursor_BinaryOperator || parent.kind == CXCursor_CallExpr ) && current.kind == CXCursor_UnexposedExpr ) {
+                if ( instance->debug ) {
+                    CXString parent_kind_spelling = clang_getCursorKindSpelling( parent.kind );
+                    CXString current_kind_spelling = clang_getCursorKindSpelling( current.kind );
+
+                    std::cout << "  Kind: " << clang_getCString(parent_kind_spelling) << "\n"
+                              << "    Kind: " << clang_getCString(current_kind_spelling) << "\n"
+                              << "      Type: " << clang_getCString(type_spelling) << "\n"
+                              << "      Token: " << clang_getCString(token_spelling) << "\n"
+                              << "      Line " << line << "\n\n";
+                    
+                    clang_disposeString( parent_kind_spelling );
+                    clang_disposeString( current_kind_spelling );
+                }
+
+                if ( instance->temp.name != clang_getCString(token_spelling) ) {
+                    instance->getDeclLocation( clang_getCString(token_spelling), instance->count++, clang_getCString(type_spelling) );
+                    clang_disposeString( type_spelling );
+                    clang_disposeString( token_spelling );
+                    clang_disposeTokens( instance->translationUnit, cursor_token, 1 );
+                    return CXChildVisit_Break;
+                }
+            }
+            
+            clang_disposeString( token_spelling );
+            clang_disposeTokens( instance->translationUnit, cursor_token, 1 );
         }
 
-        instance->temp.name = clang_getCString(token_spelling);
+        clang_disposeString( type_spelling );
     }
-
-    if ( ( parent_kind == CXCursor_BinaryOperator || parent_kind == CXCursor_CallExpr ) && current_kind == CXCursor_UnexposedExpr ) {
-        if ( instance->debug ) {
-            std::cout << "  Kind: " << clang_getCString(parent_kind_spelling) << "\n"
-                      << "    Kind: " << clang_getCString(current_kind_spelling) << "\n"
-                      << "      Type: " << clang_getCString(type_kind_spelling) << "\n"
-                      << "      Token: " << clang_getCString(token_spelling) << "\n"
-                      << "      Line " << line << "\n\n";
-        }
-
-        if ( instance->temp.name != clang_getCString(token_spelling) ) {
-            instance->getDeclLocation( clang_getCString(token_spelling), instance->count++, clang_getCString(type_kind_spelling) );
-            return CXChildVisit_Break;
-        }
-    }
-
-    clang_disposeString( currentDisplayName );
-    clang_disposeString( type_kind_spelling );
-    clang_disposeString( parent_kind_spelling );
-    clang_disposeString( current_kind_spelling );
-    clang_disposeString( token_spelling );
-
     return CXChildVisit_Recurse;
 }
 
@@ -153,53 +169,49 @@ CXChildVisitResult SeminalInputFeatureDetector::whileStmtBranch(CXCursor current
     // instance of SeminalInputFeatureDetector
     SeminalInputFeatureDetector *instance = static_cast<SeminalInputFeatureDetector *>(clientData);
 
-    // Allocate a CXString representing the name of the current cursor
-    CXString currentDisplayName = clang_getCursorDisplayName(current);
+    if ( !clang_Cursor_isNull( current ) && clang_Cursor_hasAttrs( current ) ) {
 
-    // Cursor Kind
-    CXCursorKind parent_kind = clang_getCursorKind( parent );
-    CXCursorKind current_kind = clang_getCursorKind( current );
-    CXString parent_kind_spelling = clang_getCursorKindSpelling( parent_kind );
-    CXString current_kind_spelling = clang_getCursorKindSpelling( current_kind );
+        // Cursor Type
+        CXType cursor_type = clang_getCursorType( current ); // invalid pointer issue??
+        CXString type_spelling = clang_getTypeSpelling( cursor_type );
 
-    // Cursor Type
-    CXType cursor_type = clang_getCursorType(current);
-    CXString type_kind_spelling = clang_getTypeSpelling( cursor_type );
+        // Cursor Location
+        CXSourceLocation location = clang_getCursorLocation( current );
+        unsigned line;
+        clang_getExpansionLocation( location, &instance->cxFile, &line, nullptr, nullptr );
+        
+        // Check for break statements
+        if ( parent.kind == CXCursor_IfStmt && current.kind == CXCursor_BreakStmt ) {
+            clang_visitChildren( parent, instance->ifStmtBranch, instance );
 
-    // Cursor Location
-    CXSourceLocation location = clang_getCursorLocation( current );
-    unsigned line;
-    clang_getExpansionLocation( location, &instance->cxFile, &line, nullptr, nullptr );
+        } else if ( ( parent.kind == CXCursor_BinaryOperator || parent.kind == CXCursor_CallExpr ) && current.kind == CXCursor_UnexposedExpr ) {
+            // Cursor Token
+            CXToken *cursor_token = clang_getToken( instance->translationUnit, location );
+            if ( cursor_token ) {
+                CXString token_spelling = clang_getTokenSpelling( instance->translationUnit, *cursor_token );
+                // if ( instance->debug ) {
+                //     // Cursor Kind
+                //     CXString parent_kind_spelling = clang_getCursorKindSpelling( parent_kind );
+                //     CXString current_kind_spelling = clang_getCursorKindSpelling( current_kind );
 
-    // Check for break statements
-    if ( parent_kind == CXCursor_IfStmt && current_kind == CXCursor_BreakStmt ) {
-        clang_visitChildren( parent, instance->ifStmtBranch, instance );
-        return CXChildVisit_Recurse;
-    }
+                //     std::cout << "  Kind: " << clang_getCString(parent_kind_spelling) << "\n"
+                //             << "    Kind: " << clang_getCString(current_kind_spelling) << "\n"
+                //             << "      Type: " << clang_getCString(type_spelling) << "\n"
+                //             << "      Token: " << clang_getCString(token_spelling) << "\n"
+                //             << "      Line " << line << "\n\n";
 
-    if ( ( parent_kind == CXCursor_BinaryOperator || parent_kind == CXCursor_CallExpr ) && current_kind == CXCursor_UnexposedExpr ) {
-        // Cursor Token
-        CXToken *cursor_token = clang_getToken( instance->translationUnit, location );
-        if ( cursor_token ) {
-            CXString token_spelling = clang_getTokenSpelling( instance->translationUnit, *cursor_token );
-            if ( instance->debug ) {
-                std::cout << "  Kind: " << clang_getCString(parent_kind_spelling) << "\n"
-                        << "    Kind: " << clang_getCString(current_kind_spelling) << "\n"
-                        << "      Type: " << clang_getCString(type_kind_spelling) << "\n"
-                        << "      Token: " << clang_getCString(token_spelling) << "\n"
-                        << "      Line " << line << "\n\n";
+                //     clang_disposeString( parent_kind_spelling );
+                //     clang_disposeString( current_kind_spelling );
+                // }
+
+                instance->getDeclLocation( clang_getCString(token_spelling), instance->count++, clang_getCString(type_spelling) );
+                clang_disposeString( token_spelling );
+                clang_disposeTokens( instance->translationUnit, cursor_token, 1 );
             }
-            instance->getDeclLocation( clang_getCString(token_spelling), instance->count++, clang_getCString(type_kind_spelling) );
-            clang_disposeString( token_spelling );
         }
-        return CXChildVisit_Recurse;
+
+        clang_disposeString( type_spelling );
     }
-
-    clang_disposeString( currentDisplayName );
-    clang_disposeString( type_kind_spelling );
-    clang_disposeString( parent_kind_spelling );
-    clang_disposeString( current_kind_spelling );
-
     return CXChildVisit_Recurse;
 }
 
@@ -258,30 +270,35 @@ void SeminalInputFeatureDetector::cursorFinder() {
     // Looks at each of the cursor objects to recursively search through
     for ( int i = 0; i < cursorObjs.size(); i++ ) {
 
-        CXCursorKind cursorKind = clang_getCursorKind( cursorObjs[i] );
-        CXString kind_spelling = clang_getCursorKindSpelling(cursorKind);
-        if ( debug ) {
-            std::cout << "Kind: " << clang_getCString(kind_spelling) << "\n";
-        }
+        if ( !clang_Cursor_isNull( cursorObjs[i] ) ) {
+            if ( debug ) {
+                CXString kind_spelling = clang_getCursorKindSpelling( cursorObjs[i].kind );
+                std::cout << "Kind: " << clang_getCString(kind_spelling) << "\n";
+                clang_disposeString( kind_spelling );
+            }
 
-        switch ( cursorKind ) {
-            case CXCursor_IfStmt:
-                clang_visitChildren( cursorObjs[i], this->ifStmtBranch, this );
-                break;
-            case CXCursor_ForStmt:
-                clang_visitChildren( cursorObjs[i], this->forStmtBranch, this );
-                break;
-            case CXCursor_WhileStmt:
-                clang_visitChildren( cursorObjs[i], this->whileStmtBranch, this );
-                break;
-            default:
-                continue;
-        }
+            switch ( cursorObjs[i].kind ) {
+                case CXCursor_IfStmt:
+                    clang_visitChildren( cursorObjs[i], this->ifStmtBranch, this );
+                    break;
+                case CXCursor_ForStmt:
+                    clang_visitChildren( cursorObjs[i], this->forStmtBranch, this );
+                    break;
+                case CXCursor_WhileStmt:
+                    clang_visitChildren( cursorObjs[i], this->whileStmtBranch, this );
+                    break;
+                default:
+                    continue;
+            }
 
-        if ( debug ) {
-            std::cout << "\n";
+            if ( debug ) {
+                std::cout << "\n";
+            }
         }
     }
+
+    clang_disposeTranslationUnit( translationUnit );
+    clang_disposeIndex( index );
 
     printSeminalInputFeatures();
 }
