@@ -37,7 +37,7 @@ CXChildVisitResult SeminalInputFeatureDetector::ifStmtBranch(CXCursor current,
     // instance of SeminalInputFeatureDetector
     SeminalInputFeatureDetector *instance = static_cast<SeminalInputFeatureDetector *>(clientData);
 
-    if ( !clang_Cursor_isNull( current ) && clang_Cursor_hasAttrs( current ) ) {
+    if ( !clang_Cursor_isNull( current ) ) {
 
         // Cursor Type
         CXType cursor_type = clang_getCursorType( current );
@@ -51,7 +51,6 @@ CXChildVisitResult SeminalInputFeatureDetector::ifStmtBranch(CXCursor current,
         // Cursor Token
         CXToken *cursor_token = clang_getToken( instance->translationUnit, location );
         if ( cursor_token ) {
-
             CXString token_spelling = clang_getTokenSpelling( instance->translationUnit, *cursor_token );
 
             if ( parent.kind == CXCursor_IfStmt && ( current.kind == CXCursor_UnexposedExpr 
@@ -90,12 +89,11 @@ CXChildVisitResult SeminalInputFeatureDetector::forStmtBranch(CXCursor current,
                                                       CXCursor parent,
                                                       CXClientData clientData) {
 
-    std::cout << "1\n";
     // instance of SeminalInputFeatureDetector
     SeminalInputFeatureDetector *instance = static_cast<SeminalInputFeatureDetector *>(clientData);
 
-    if ( !clang_Cursor_isNull( current ) && clang_Cursor_hasAttrs( current ) ) {
-        std::cout << "2\n";
+    if ( !clang_Cursor_isNull( current ) ) {
+        
         // Cursor Type
         CXType cursor_type = clang_getCursorType( current ); // invalid pointer issue??
         CXString type_spelling = clang_getTypeSpelling( cursor_type );
@@ -108,7 +106,6 @@ CXChildVisitResult SeminalInputFeatureDetector::forStmtBranch(CXCursor current,
         // Cursor Token
         CXToken *cursor_token = clang_getToken( instance->translationUnit, location );
         if ( cursor_token ) {
-
             CXString token_spelling = clang_getTokenSpelling( instance->translationUnit, *cursor_token );
 
             if ( parent.kind == CXCursor_DeclStmt && current.kind == CXCursor_VarDecl ) {
@@ -169,7 +166,7 @@ CXChildVisitResult SeminalInputFeatureDetector::whileStmtBranch(CXCursor current
     // instance of SeminalInputFeatureDetector
     SeminalInputFeatureDetector *instance = static_cast<SeminalInputFeatureDetector *>(clientData);
 
-    if ( !clang_Cursor_isNull( current ) && clang_Cursor_hasAttrs( current ) ) {
+    if ( !clang_Cursor_isNull( current ) ) {
 
         // Cursor Type
         CXType cursor_type = clang_getCursorType( current ); // invalid pointer issue??
@@ -189,20 +186,20 @@ CXChildVisitResult SeminalInputFeatureDetector::whileStmtBranch(CXCursor current
             CXToken *cursor_token = clang_getToken( instance->translationUnit, location );
             if ( cursor_token ) {
                 CXString token_spelling = clang_getTokenSpelling( instance->translationUnit, *cursor_token );
-                // if ( instance->debug ) {
-                //     // Cursor Kind
-                //     CXString parent_kind_spelling = clang_getCursorKindSpelling( parent_kind );
-                //     CXString current_kind_spelling = clang_getCursorKindSpelling( current_kind );
+                if ( instance->debug ) {
+                    // Cursor Kind
+                    CXString parent_kind_spelling = clang_getCursorKindSpelling( parent.kind );
+                    CXString current_kind_spelling = clang_getCursorKindSpelling( current.kind );
 
-                //     std::cout << "  Kind: " << clang_getCString(parent_kind_spelling) << "\n"
-                //             << "    Kind: " << clang_getCString(current_kind_spelling) << "\n"
-                //             << "      Type: " << clang_getCString(type_spelling) << "\n"
-                //             << "      Token: " << clang_getCString(token_spelling) << "\n"
-                //             << "      Line " << line << "\n\n";
+                    std::cout << "  Kind: " << clang_getCString(parent_kind_spelling) << "\n"
+                            << "    Kind: " << clang_getCString(current_kind_spelling) << "\n"
+                            << "      Type: " << clang_getCString(type_spelling) << "\n"
+                            << "      Token: " << clang_getCString(token_spelling) << "\n"
+                            << "      Line " << line << "\n\n";
 
-                //     clang_disposeString( parent_kind_spelling );
-                //     clang_disposeString( current_kind_spelling );
-                // }
+                    clang_disposeString( parent_kind_spelling );
+                    clang_disposeString( current_kind_spelling );
+                }
 
                 instance->getDeclLocation( clang_getCString(token_spelling), instance->count++, clang_getCString(type_spelling) );
                 clang_disposeString( token_spelling );
