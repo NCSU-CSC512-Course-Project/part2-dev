@@ -14,12 +14,14 @@
 SeminalInputFeatureDetector::SeminalInputFeatureDetector( const std::string &filename, bool debug )
     : filename(std::move(filename)), debug(debug) {
 
-    // Call KeyPointsCollector constructor
-    KeyPointsCollector kpc( std::string(filename), false );
+    // Get a pointer to the KPC, the cursors obtained from this are need their
+  // translation unit to still be active in memory to be able to obtain
+  // valid memory reads and prevent heap corruption.
+    kpc = new KeyPointsCollector( std::string(filename), false );
     
     // Obtained from part 1, KeyPointsCollector.cpp
-    cursorObjs = kpc.getCursorObjs();
-    varDecls = kpc.getVarDecls();
+    cursorObjs = kpc->getCursorObjs();
+    varDecls = kpc->getVarDecls();
     count = 0;
 
     translationUnit =
@@ -285,7 +287,7 @@ void SeminalInputFeatureDetector::cursorFinder() {
                     clang_visitChildren( cursorObjs[i], this->whileStmtBranch, this );
                     break;
                 default:
-                    continue;
+                  break;
             }
 
             if ( debug ) {
@@ -296,6 +298,7 @@ void SeminalInputFeatureDetector::cursorFinder() {
 
     clang_disposeTranslationUnit( translationUnit );
     clang_disposeIndex( index );
+    delete kpc;
 
     printSeminalInputFeatures();
 }

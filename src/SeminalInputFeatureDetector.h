@@ -3,6 +3,7 @@
  * @author Carter Fultz (cmfultz)
 */
 
+#include "KeyPointsCollector.h"
 #include <string>
 #include <vector>
 #include <map>
@@ -15,6 +16,8 @@ class SeminalInputFeatureDetector {
 
     // CXFile object of analysis file.
     CXFile cxFile;
+
+  KeyPointsCollector *kpc; 
 
     // Vector of CXCursor objs pointing to node of interest
     std::vector<CXCursor> cursorObjs;
