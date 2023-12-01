@@ -6,6 +6,25 @@ The goal of this part is to build a static analysis tool based on LLVM that can 
 3. Collects and adds the variables to a vector if it exists in the variable declarations map and if it does not exist in the vector already.
 
 # Example
+Here is an example for this C program:
+```bash
+int main(){
+   int id;
+   int n;
+   scanf("%d, %d", &id, &n);
+   int s = 0;
+   for ( int i = 0; i < n; i++ ) {
+      s += rand();
+      if ( s > 10 ) {
+         break;
+      }
+   }
+   printf( "id=%d; sum=%d\n", id, n );
+}
+```
+The SeminalInputFeatureDetector will output:
+Line 6: n
+Line 8: s
 
 # Build and Usage
 To build this project, ensure you have the following items on your system. (These should all be installed on NCSU Ubuntu 22.04 LTS Image)<br>
