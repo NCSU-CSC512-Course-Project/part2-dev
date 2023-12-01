@@ -42,10 +42,53 @@ To run:
 ```bash
 make run
 ```
-You will be given a series of prompts to run the program, and all the files will be written to the ```out``` directory. Below is an example of the full shell output for the above program:<br>
+You will be given a series of prompts to run the program, and all the files will be written to the ```out``` directory. Below is an example of the full shell output for the above program with the debugger on:<br>
 ```
 $ part2-dev git:(main) make run
-...
+mkdir -p bin bin/objs out
+g++ -O0 -g3 -std=c++17 -o bin/objs/SeminalInputFeatureDetector.o -c src/SeminalInputFeatureDetector.cpp
+g++  bin/objs/KeyPointsCollector.o  bin/objs/main.o  bin/objs/SeminalInputFeatureDetector.o -O0 -g3 -std=c++17 -lclang  -o bin/SeminalInputFeatureDetector
+bin/SeminalInputFeatureDetector
+Enter a file name for analysis: test-files/TF_1_rand.c
+Would you like the debugger on? (y/n): y
+Translation unit for file: test-files/TF_1_rand.c successfully parsed.
+Variable Declarations:
+31: __u_char
+9: i
+5: id
+6: n
+8: s
+
+Kind: ForStmt
+  Kind: DeclStmt
+    Kind: VarDecl
+      Type: int
+      Token: i
+      Line 9
+
+  Kind: BinaryOperator
+    Kind: UnexposedExpr
+      Type: int
+      Token: i
+      Line 9
+
+  Kind: BinaryOperator
+    Kind: UnexposedExpr
+      Type: int
+      Token: n
+      Line 9
+
+
+Kind: IfStmt
+  Kind: IfStmt
+    Kind: BinaryOperator
+      Type: int
+      Token: s
+      Line 11
+
+
+Line 6: n
+Line 8: s
 ```
 # Testing (For Grader)
-All our chosen test files are prefixed with TF in the root directory, TF_3_SPEC.c is the chosen SPEC program for our testing.
+All our chosen test files are prefixed with TF in the root directory, TF_4_SPEC.c is the chosen SPEC program for our testing.
