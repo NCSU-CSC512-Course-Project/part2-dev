@@ -4,10 +4,12 @@
 #ifndef KEY_POINTS_COLLECTOR__H
 #define KEY_POINTS_COLLECTOR__H
 
+#include "Common.h"
 #include <clang-c/Index.h>
 
 #include <iostream>
 #include <map>
+#include <memory>
 #include <stack>
 #include <string>
 #include <vector>
@@ -41,6 +43,20 @@ class KeyPointsCollector {
   // Debug option
   bool debug;
 
+  // Map to hold include directives
+  std::map<unsigned, std::string> includeDirectives;
+
+  // Adds include directive to map
+  void addIncludeDirective(unsigned lineNum, std::string includeDirective) {
+    includeDirectives[lineNum] = includeDirective;
+  }
+
+  // Method to remove include directives from source file before parsing.
+  void removeIncludeDirectives();
+
+  // Method to reinsert include directives into source file.
+  void reInsertIncludeDirectives();
+
   // This is a weird one, since clang_visitChildren requires a function ptr
   // for its second argument without any signature, its not possible to capture
   // 'this' with a lambda. Consequently, we mark this function as static and
@@ -60,11 +76,107 @@ class KeyPointsCollector {
 
   // Visitor for a FuncDecl, to collect name and defintion location.
   static CXChildVisitResult VisitFuncDecl(CXCursor current, CXCursor parent,
-                                          CXClientData kps);
+                                          CXClientData kpc);
 
   // Visitor for a VarDecl, to collect name and location
-  static CXChildVisitResult VisitVarDecl(CXCursor current, CXCursor parent,
-                                         CXClientData kps);
+  static CXChildVisitResult
+  VisitVarOrParamDecl(CXCursor current, CXCursor parent, CXClientData kpc);
+
+  // Visitor for a function pointer, just to extract the name of the function it
+  // is pointing to.
+  static CXChildVisitResult VisitFuncPtr(CXCursor current, CXCursor parent,
+                                         CXClientData kpc);
+
+  // Map of function pointers, their ids mapped to the name of the function they
+  // represent.
+  std::map<std::string, std::string> funcPtrs;
+
+  // Current func ptr id being looked at.
+  std::string currFuncPtrId;
+
+  // See if an Id maps to a function pointer
+  std::string isFunctionPtr(const std::string &id) {
+    if (MAP_FIND(funcPtrs, id)) {
+      return funcPtrs[id];
+    }
+    return nullptr;
+  }
+
+  // Add a function pointer to the map.
+  void addFuncPtr(const std::string &id, const std::string &func) {
+    funcPtrs[id] = func;
+  }
+
+  // Struct to hold information about a function
+  struct FunctionDeclInfo {
+    // Location of function defintion and the end of its body
+    unsigned defLoc;
+    unsigned endLoc;
+    // Function name
+    const std::string name;
+    // Return type of function
+    const std::string type;
+    // Is it a recursive function?
+    bool recursive;
+
+    FunctionDeclInfo(unsigned defLoc, unsigned endLoc, const std::string &name,
+                     const std::string &type)
+        : defLoc(defLoc), endLoc(endLoc), name(std::move(name)),
+          type(std::move(type)) {}
+
+    // Sets the recursive marker
+    void setRecursive() { recursive = true; }
+
+    // Is this line number inside this func body?
+    bool isInBody(unsigned lineNum) {
+      return lineNum >= defLoc && lineNum <= endLoc;
+    }
+  };
+
+  // Add func decl to maps.
+  void addFuncDecl(std::shared_ptr<FunctionDeclInfo> decl) {
+    funcDecls[decl->defLoc] = decl;
+    funcDeclsString[decl->name] = decl;
+  }
+
+  // Functions are stored being mapped from their definition line number to
+  // their respective structs.
+  std::map<unsigned, std::shared_ptr<FunctionDeclInfo>> funcDecls;
+
+  // Additional map for function lookup by name
+  std::map<std::string, std::shared_ptr<FunctionDeclInfo>> funcDeclsString;
+  //
+  // Function getter by string
+  std::shared_ptr<FunctionDeclInfo> getFunctionByName(const std::string &name) {
+    if (MAP_FIND(funcDeclsString, name)) {
+      return funcDeclsString[name];
+    }
+    return nullptr;
+  }
+
+  // Current function being traversed.
+  std::shared_ptr<FunctionDeclInfo> currentFunction;
+
+  // Checks to see if the line number is in the current function
+  bool inCurrentFunction(unsigned lineNumber) const {
+    return currentFunction->isInBody(lineNumber);
+  }
+
+  // Map of line numbers mapped to the function being called
+  std::map<unsigned, std::string> functionCalls;
+
+  // Add a call to the call map
+  void addCall(unsigned lineNum, const std::string &calleeName) {
+    functionCalls[lineNum] = calleeName;
+  }
+
+  // Map of variable names (VarDecls) mapped to their declaration location
+  std::map<std::string, unsigned> varDecls;
+
+  // Adds a found varable declaration to the map
+  void addVarDeclToMap(const std::string name, unsigned lineNum) {
+    varDecls[name] = lineNum;
+  }
 
   struct BranchPointInfo {
     unsigned branchPoint;
@@ -95,22 +207,6 @@ class KeyPointsCollector {
   // Vector of completed branch points
   std::vector<BranchPointInfo> branchPoints;
 
-  // Map of function names mapped to their definition location
-  std::map<std::string, unsigned> functionDecls;
-
-  // Adds a found function declaration to the map
-  void addFuncDeclToMap(const std::string name, unsigned lineNum) {
-    functionDecls[name] = lineNum;
-  }
-
-  // Map of variable names (VarDecls) mapped to their declaration location
-  std::map<std::string, unsigned> varDecls;
-
-  // Adds a found varable declaration to the map
-  void addVarDeclToMap(const std::string name, unsigned lineNum) {
-    varDecls[name] = lineNum;
-  }
-
   // Push a new BP onto the stack
   void pushNewBranchPoint() { branchPointStack.push(BranchPointInfo()); }
 
@@ -134,7 +230,10 @@ class KeyPointsCollector {
 
   // Checks to see if the current cursor is a point in the program
   // that could be a branch
-  bool isBranchPointOrFunctionPtr(const CXCursorKind K);
+  bool isBranchPointOrCallExpr(const CXCursorKind K);
+
+  // Checks to see if the current VarDecl is a function ptr;
+  bool isFunctionPtr(const CXCursor C);
 
   // Checks to see if the stack is empty to ensure we have found a
   // compound statement before checking against further children.
@@ -150,9 +249,15 @@ class KeyPointsCollector {
   // Add completed  branch to vector of branches and pop from stack;
   void addCompletedBranch();
 
-  // Core AST traversal function, once the translation unit has been parsed,
-  // recursively visit nodes and add to cursorObjs if they are of interest.
-  void collectCursors();
+  // Creates dictionary file of branch points.
+  void createDictionaryFile();
+
+  // Iterates through the branch points and declares a flag for each one at the
+  // top of the program: e.g int br_1 = 0
+  void
+  insertFunctionBranchPointDecls(std::ofstream &program,
+                                 std::shared_ptr<FunctionDeclInfo> function,
+                                 int *branchCount);
 
 public:
   // KPC ctor, takes file name in, ownership is transfered to KPC.
@@ -166,10 +271,16 @@ public:
   const std::vector<CXCursor> &getCursorObjs() const { return cursorObjs; }
 
   // Returns a reference to map of function defintions
-  const std::map<std::string, unsigned> &getFuncDecls() const {
-    return functionDecls;
+  const std::map<unsigned, std::shared_ptr<FunctionDeclInfo>> &
+  getFuncDecls() const {
+    return funcDecls;
   }
-  //
+
+  // Returns a reference the map of known function calls.
+  const std::map<unsigned, std::string> &getFuncCalls() const {
+    return functionCalls;
+  }
+
   // Returns a reference to map of variable defintions
   const std::map<std::string, unsigned> &getVarDecls() const {
     return varDecls;
@@ -187,12 +298,27 @@ public:
     return branchDictionary;
   }
 
-  // Iterates over cursorObjs and constructs the branch ptr trace.
-  // Once traversal and parsing have finished.
-  void outputBranchPtrTrace();
-
-  // Invokes Valgrind through system calls and constructs output.
+  // Invokes Valgrind toolchain to analyze the original programs executed
+  // instructions.
   void invokeValgrind();
+
+  // Does everything needed to get the branch pointer trace as a string.
+  std::string getBPTrace();
+  //
+  // Once the transformed program has been created, compile it with system C
+  // compiler.
+  void compileModified();
+
+  // Performs the transformation of the program so it can be compiled with
+  // branch statements.
+  void transformProgram();
+
+  // Core AST traversal function, once the translation unit has been parsed,
+  // recursively visit nodes and add to cursorObjs if they are of interest.
+  void collectCursors();
+
+  // Runs all necessary functions for part 1
+  void executeToolchain();
 };
 
 #endif // KEY_POINTS_COLLECTOR__H

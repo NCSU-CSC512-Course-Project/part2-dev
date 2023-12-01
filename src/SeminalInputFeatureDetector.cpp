@@ -20,6 +20,7 @@ SeminalInputFeatureDetector::SeminalInputFeatureDetector( const std::string &fil
     kpc = new KeyPointsCollector( std::string(filename), false );
     
     // Obtained from part 1, KeyPointsCollector.cpp
+    kpc->collectCursors();
     cursorObjs = kpc->getCursorObjs();
     varDecls = kpc->getVarDecls();
     count = 0;
