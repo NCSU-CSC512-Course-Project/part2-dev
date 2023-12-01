@@ -28,8 +28,8 @@ int fib(int val) {
 }
 
 int main(void) {
-    int idx, bound; // Doesnt find bound in varDecls
-    bound = 16;
+    int idx;
+    int bound = 16;
 
     initialize_array();
 
