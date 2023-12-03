@@ -33,9 +33,10 @@ To build this project, ensure you have the following items on your system. (Thes
 - LibClang, this is a part of the LLVM Project. To build correctly, run the build script [here](https://github.com/NCSU-CSC512-Course-Project/part1-dev/blob/main/build_llvm.sh)
 - Python 3.10
 
-To build:<br>
+To build: Run the build_llvm script and get_kpc_deps script to grab the updated KeyPointsCollecter files<br>
 ```bash
 ./build_llvm.sh
+./get_kpc_deps.sh
 make
 ```
 To run:
