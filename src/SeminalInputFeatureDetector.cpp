@@ -50,9 +50,10 @@ CXChildVisitResult SeminalInputFeatureDetector::ifStmtBranch(CXCursor current,
         CXSourceLocation location = clang_getCursorLocation( current );
         unsigned line;
         clang_getExpansionLocation( location, &instance->cxFile, &line, nullptr, nullptr );
+        line += instance->kpc->getNumIncludeDirectives();
         
         // Cursor Token
-        CXToken *cursor_token = clang_getToken( instance->translationUnit, location );
+        CXToken *cursor_token = clang_getToken( instance->kpc->getTU(), location );
         if ( cursor_token ) {
             CXString token_spelling = clang_getTokenSpelling( instance->translationUnit, *cursor_token );
 
@@ -105,9 +106,10 @@ CXChildVisitResult SeminalInputFeatureDetector::forStmtBranch(CXCursor current,
         CXSourceLocation location = clang_getCursorLocation( current );
         unsigned line;
         clang_getExpansionLocation( location, &instance->cxFile, &line, nullptr, nullptr );
+        line += instance->kpc->getNumIncludeDirectives();
 
         // Cursor Token
-        CXToken *cursor_token = clang_getToken( instance->translationUnit, location );
+        CXToken *cursor_token = clang_getToken( instance->kpc->getTU(), location );
         if ( cursor_token ) {
             CXString token_spelling = clang_getTokenSpelling( instance->translationUnit, *cursor_token );
 
@@ -179,6 +181,7 @@ CXChildVisitResult SeminalInputFeatureDetector::whileStmtBranch(CXCursor current
         CXSourceLocation location = clang_getCursorLocation( current );
         unsigned line;
         clang_getExpansionLocation( location, &instance->cxFile, &line, nullptr, nullptr );
+        line += instance->kpc->getNumIncludeDirectives();
         
         // Check for break statements
         if ( parent.kind == CXCursor_IfStmt && current.kind == CXCursor_BreakStmt ) {
@@ -186,9 +189,9 @@ CXChildVisitResult SeminalInputFeatureDetector::whileStmtBranch(CXCursor current
 
         } else if ( ( parent.kind == CXCursor_BinaryOperator || parent.kind == CXCursor_CallExpr ) && current.kind == CXCursor_UnexposedExpr ) {
             // Cursor Token
-            CXToken *cursor_token = clang_getToken( instance->translationUnit, location );
+            CXToken *cursor_token = clang_getToken( instance->kpc->getTU(), location );
             if ( cursor_token ) {
-                CXString token_spelling = clang_getTokenSpelling( instance->translationUnit, *cursor_token );
+                CXString token_spelling = clang_getTokenSpelling( instance->kpc->getTU(), *cursor_token );
                 if ( instance->debug ) {
                     // Cursor Kind
                     CXString parent_kind_spelling = clang_getCursorKindSpelling( parent.kind );

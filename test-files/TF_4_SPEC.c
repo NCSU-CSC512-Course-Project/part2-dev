@@ -54,8 +54,8 @@
 
 /* Period parameters */
 #define N 624
-#include <stdio.h>
 #define M 397
+#include <stdio.h>
 #define MATRIX_A 0x9908b0dfUL   /* constant vector a */
 #define UPPER_MASK 0x80000000UL /* most significant w-r bits */
 #define LOWER_MASK 0x7fffffffUL /* least significant r bits */
@@ -89,7 +89,7 @@ CLINK unsigned long spec_genrand_int32(void) {
 
     if (mti == N + 1) {
       spec_init_genrand(5489UL); /* a default initial seed is used */
-    }           /* if init_genrand() has not been called, */
+    }                            /* if init_genrand() has not been called, */
 
     for (kk = 0; kk < N - M; kk++) {
       y = (mt[kk] & UPPER_MASK) | (mt[kk + 1] & LOWER_MASK);
@@ -127,7 +127,7 @@ CLINK double spec_rand(void) {
 
 /* Just a copy of spec_genrand_int31() */
 CLINK long spec_lrand48(void) {
-  return (long)(spec_genrand_int32() >> 1); 
+  return (long)(spec_genrand_int32() >> 1);
 }
 
 /* initialize by an array with array-length */
@@ -247,10 +247,9 @@ void run_sequence(int linked, int count, int seed, int saved_seed2,
          seed2 == seed3) ||
         (!linked && tmpf[0] != tmpf[1] && tmpf[1] != tmpf[2] && seed2 != seed3)) {
       puts("ok");
-    }
-    else {
-    printf("NOT OK:01:%d 12:%d s23:%d\n", linked ^ (tmpf[0] == tmpf[1]),
-           linked ^ (tmpf[1] == tmpf[2]), linked ^ (seed2 == seed3));
+    } else {
+      printf("NOT OK:01:%d 12:%d s23:%d\n", linked ^ (tmpf[0] == tmpf[1]),
+             linked ^ (tmpf[1] == tmpf[2]), linked ^ (seed2 == seed3));
     }
   }
 
@@ -268,10 +267,8 @@ void run_sequence(int linked, int count, int seed, int saved_seed2,
     if ((linked && tmpi[0] == tmpi[1] && tmpi[1] == tmpi[2] &&
          seed2 == seed3) ||
         (!linked && tmpi[0] != tmpi[1] && tmpi[1] != tmpi[2] && seed2 != seed3)) {
-
       puts("ok");
-    }
-    else {
+    } else {
       printf("NOT OK:01:%d 12:%d s23:%d\n", linked ^ (tmpi[0] == tmpi[1]),
              linked ^ (tmpi[1] == tmpi[2]), linked ^ (seed2 == seed3));
     }
@@ -292,8 +289,7 @@ void run_sequence(int linked, int count, int seed, int saved_seed2,
          seed2 == seed3) ||
         (!linked && tmpl[0] != tmpl[1] && tmpl[1] != tmpl[2] && seed2 != seed3)) {
       puts("ok");
-    }
-    else {
+    } else {
       printf("NOT OK:01:%d 12:%d s23:%d\n", linked ^ (tmpl[0] == tmpl[1]),
              linked ^ (tmpl[1] == tmpl[2]), linked ^ (seed2 == seed3));
     }
@@ -345,7 +341,7 @@ void run_sequence(int linked, int count, int seed, int saved_seed2, int saved_se
   printf("\n%%d sequence (unscaled) (1-2147483647):\n");
   for (i = 0; i < count; i++) {
     tmpl = spec_lrand48();
-    if (i % SKIP == 0) { 
+    if (i % SKIP == 0) {
       printf("%-16ld\n", tmpl);
     }
   }
