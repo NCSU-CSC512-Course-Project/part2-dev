@@ -112,7 +112,7 @@ CXChildVisitResult SeminalInputFeatureDetector::forStmtBranch(CXCursor current,
         if ( cursor_token ) {
             CXString token_spelling = clang_getTokenSpelling( instance->translationUnit, *cursor_token );
 
-            if ( parent.kind == CXCursor_DeclStmt && current.kind == CXCursor_VarDecl ) {
+            if ( (parent.kind == CXCursor_DeclStmt && current.kind == CXCursor_VarDecl) || (current.kind == CXCursor_DeclRefExpr) ) {
                 if ( instance->debug ) {
                     CXString parent_kind_spelling = clang_getCursorKindSpelling( parent.kind );
                     CXString current_kind_spelling = clang_getCursorKindSpelling( current.kind );
