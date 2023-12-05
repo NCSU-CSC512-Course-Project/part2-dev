@@ -73,4 +73,7 @@ public:
     // Looks through the vector of CXCursors
     void cursorFinder();
 
+    // Locates the Seminal Input Feature at a specific branch
+    void findCursorAtLine( int branchLine );
+
 };

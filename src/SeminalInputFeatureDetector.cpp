@@ -4,7 +4,6 @@
 */
 
 #include "SeminalInputFeatureDetector.h"
-#include "KeyPointsCollector.h"
 
 #include <clang-c/Index.h>
 #include <iostream>
@@ -183,11 +182,7 @@ CXChildVisitResult SeminalInputFeatureDetector::whileStmtBranch(CXCursor current
         clang_getExpansionLocation( location, &instance->cxFile, &line, nullptr, nullptr );
         line += instance->kpc->getNumIncludeDirectives();
         
-        // Check for break statements
-        if ( parent.kind == CXCursor_IfStmt && current.kind == CXCursor_BreakStmt ) {
-            clang_visitChildren( parent, instance->ifStmtBranch, instance );
-
-        } else if ( ( parent.kind == CXCursor_BinaryOperator || parent.kind == CXCursor_CallExpr ) && current.kind == CXCursor_UnexposedExpr ) {
+        if ( ( parent.kind == CXCursor_BinaryOperator || parent.kind == CXCursor_CallExpr ) && current.kind == CXCursor_UnexposedExpr ) {
             // Cursor Token
             CXToken *cursor_token = clang_getToken( instance->kpc->getTU(), location );
             if ( cursor_token ) {
@@ -210,6 +205,7 @@ CXChildVisitResult SeminalInputFeatureDetector::whileStmtBranch(CXCursor current
                 instance->getDeclLocation( clang_getCString(token_spelling), instance->count++, clang_getCString(type_spelling) );
                 clang_disposeString( token_spelling );
                 clang_disposeTokens( instance->translationUnit, cursor_token, 1 );
+                return CXChildVisit_Break;
             }
         }
 
@@ -293,6 +289,56 @@ void SeminalInputFeatureDetector::cursorFinder() {
                 default:
                     std::cout << "am i dumb af?" << cursorObjs[i].kind << "\n";
                     break;
+            }
+
+            if ( debug ) {
+                std::cout << "\n";
+            }
+        }
+    }
+
+    clang_disposeTranslationUnit( translationUnit );
+    clang_disposeIndex( index );
+    delete kpc;
+
+    printSeminalInputFeatures();
+}
+
+void SeminalInputFeatureDetector::findCursorAtLine( int branchLine ) {
+
+    CXSourceLocation location;
+    unsigned line;
+
+    // Looks at each of the cursor objects to recursively search through
+    for ( int i = 0; i < cursorObjs.size(); i++ ) {
+
+        if ( !clang_Cursor_isNull( cursorObjs[i] ) ) {
+            if ( debug ) {
+                CXString kind_spelling = clang_getCursorKindSpelling( cursorObjs[i].kind );
+                std::cout << "Kind: " << clang_getCString(kind_spelling) << "\n";
+                clang_disposeString( kind_spelling );
+            }
+
+            // Cursor Location
+            location = clang_getCursorLocation( cursorObjs[i] );
+            clang_getExpansionLocation( location, &cxFile, &line, nullptr, nullptr );
+            line += kpc->getNumIncludeDirectives();
+
+            if ( line == branchLine ) {
+                switch ( cursorObjs[i].kind ) {
+                    case CXCursor_IfStmt:
+                        clang_visitChildren( cursorObjs[i], this->ifStmtBranch, this );
+                        break;
+                    case CXCursor_ForStmt:
+                        clang_visitChildren( cursorObjs[i], this->forStmtBranch, this );
+                        break;
+                    case CXCursor_WhileStmt:
+                        clang_visitChildren( cursorObjs[i], this->whileStmtBranch, this );
+                        break;
+                    default:
+                        break;
+                }
+                break;
             }
 
             if ( debug ) {
