@@ -287,7 +287,6 @@ void SeminalInputFeatureDetector::cursorFinder() {
                     clang_visitChildren( cursorObjs[i], this->whileStmtBranch, this );
                     break;
                 default:
-                    std::cout << "am i dumb af?" << cursorObjs[i].kind << "\n";
                     break;
             }
 
@@ -306,45 +305,51 @@ void SeminalInputFeatureDetector::cursorFinder() {
 
 void SeminalInputFeatureDetector::findCursorAtLine( int branchLine ) {
 
-    CXSourceLocation location;
-    unsigned line;
+    if ( branchLine != -1 ) {
+    
+        CXSourceLocation location;
+        unsigned line;
 
-    // Looks at each of the cursor objects to recursively search through
-    for ( int i = 0; i < cursorObjs.size(); i++ ) {
+        // Looks at each of the cursor objects to recursively search through
+        for ( int i = 0; i < cursorObjs.size(); i++ ) {
 
-        if ( !clang_Cursor_isNull( cursorObjs[i] ) ) {
-            if ( debug ) {
-                CXString kind_spelling = clang_getCursorKindSpelling( cursorObjs[i].kind );
-                std::cout << "Kind: " << clang_getCString(kind_spelling) << "\n";
-                clang_disposeString( kind_spelling );
-            }
-
-            // Cursor Location
-            location = clang_getCursorLocation( cursorObjs[i] );
-            clang_getExpansionLocation( location, &cxFile, &line, nullptr, nullptr );
-            line += kpc->getNumIncludeDirectives();
-
-            if ( line == branchLine ) {
-                switch ( cursorObjs[i].kind ) {
-                    case CXCursor_IfStmt:
-                        clang_visitChildren( cursorObjs[i], this->ifStmtBranch, this );
-                        break;
-                    case CXCursor_ForStmt:
-                        clang_visitChildren( cursorObjs[i], this->forStmtBranch, this );
-                        break;
-                    case CXCursor_WhileStmt:
-                        clang_visitChildren( cursorObjs[i], this->whileStmtBranch, this );
-                        break;
-                    default:
-                        break;
+            if ( !clang_Cursor_isNull( cursorObjs[i] ) ) {
+                if ( debug ) {
+                    CXString kind_spelling = clang_getCursorKindSpelling( cursorObjs[i].kind );
+                    std::cout << "Kind: " << clang_getCString(kind_spelling) << "\n";
+                    clang_disposeString( kind_spelling );
                 }
-                break;
-            }
 
-            if ( debug ) {
-                std::cout << "\n";
+                // Cursor Location
+                location = clang_getCursorLocation( cursorObjs[i] );
+                clang_getExpansionLocation( location, &cxFile, &line, nullptr, nullptr );
+                line += kpc->getNumIncludeDirectives();
+
+                if ( line == branchLine ) {
+                    switch ( cursorObjs[i].kind ) {
+                        case CXCursor_IfStmt:
+                            clang_visitChildren( cursorObjs[i], this->ifStmtBranch, this );
+                            break;
+                        case CXCursor_ForStmt:
+                            clang_visitChildren( cursorObjs[i], this->forStmtBranch, this );
+                            break;
+                        case CXCursor_WhileStmt:
+                            clang_visitChildren( cursorObjs[i], this->whileStmtBranch, this );
+                            break;
+                        default:
+                            break;
+                    }
+                    break;
+                }
+
+                if ( debug ) {
+                    std::cout << "\n";
+                }
             }
         }
+
+    } else {
+        std::cout << "No branch points detected.\n";
     }
 
     clang_disposeTranslationUnit( translationUnit );
