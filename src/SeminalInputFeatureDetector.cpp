@@ -86,7 +86,7 @@ CXChildVisitResult SeminalInputFeatureDetector::ifStmtBranch(CXCursor current,
 
         clang_disposeString( type_spelling );
     }
-    return CXChildVisit_Continue;
+    return CXChildVisit_Recurse;
 }
 
 CXChildVisitResult SeminalInputFeatureDetector::forStmtBranch(CXCursor current,
@@ -99,7 +99,7 @@ CXChildVisitResult SeminalInputFeatureDetector::forStmtBranch(CXCursor current,
     if ( !clang_Cursor_isNull( current ) ) {
         
         // Cursor Type
-        CXType cursor_type = clang_getCursorType( current ); // invalid pointer issue??
+        CXType cursor_type = clang_getCursorType( current );
         CXString type_spelling = clang_getTypeSpelling( cursor_type );
 
         // Cursor Location
@@ -174,7 +174,7 @@ CXChildVisitResult SeminalInputFeatureDetector::whileStmtBranch(CXCursor current
     if ( !clang_Cursor_isNull( current ) ) {
 
         // Cursor Type
-        CXType cursor_type = clang_getCursorType( current ); // invalid pointer issue??
+        CXType cursor_type = clang_getCursorType( current );
         CXString type_spelling = clang_getTypeSpelling( cursor_type );
 
         // Cursor Location
@@ -291,7 +291,8 @@ void SeminalInputFeatureDetector::cursorFinder() {
                     clang_visitChildren( cursorObjs[i], this->whileStmtBranch, this );
                     break;
                 default:
-                  break;
+                    std::cout << "am i dumb af?" << cursorObjs[i].kind << "\n";
+                    break;
             }
 
             if ( debug ) {

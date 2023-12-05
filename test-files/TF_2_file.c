@@ -1,5 +1,6 @@
 #include <stdbool.h>
 #include <stdio.h>
+typedef struct FILE;
 
 int main() {
   char *str1[1000];
